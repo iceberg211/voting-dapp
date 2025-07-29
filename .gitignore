@@ -1,0 +1,23 @@
+# Dependencies
+/node_modules
+
+# Hardhat
+/artifacts
+/cache
+/coverage
+coverage.json
+typechain-types
+
+# Vite
+/dist
+*.log
+
+# Environment
+.env
+.env.*
+
+# System Files
+.DS_Store
+
+# Generated files
+/src/contracts/contract-address.json
