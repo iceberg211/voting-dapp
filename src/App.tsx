@@ -11,7 +11,8 @@ function App() {
     hasVoted, 
     loadingVote, 
     vote, 
-    error: votingError 
+    error: votingError,
+    successMessage
   } = useVoting(contract, account);
 
   return (
@@ -20,6 +21,7 @@ function App() {
         account={account}
         hasVoted={hasVoted}
         error={ethersError || votingError}
+        successMessage={successMessage}
         connectWallet={connectWallet}
       />
 

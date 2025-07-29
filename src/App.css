@@ -54,6 +54,14 @@
   margin-top: 1rem;
 }
 
+.success {
+  color: #28a745;
+  background: rgba(40, 167, 69, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 1rem;
+}
+
 .App-main {
   display: flex;
   flex-direction: column;

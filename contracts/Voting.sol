@@ -19,6 +19,9 @@ contract Voting {
 
     uint256 public candidatesCount;
 
+    uint256 public votingStartTime;
+    uint256 public votingEndTime;
+
     event Voted(address indexed voter, uint256 indexed candidateId);
     event CandidateAdded(uint256 indexed candidateId, string name);
 
@@ -31,6 +34,11 @@ contract Voting {
         _;
     }
 
+    function setVotingTime(uint256 _startTime, uint256 _endTime) public onlyOwner {
+        votingStartTime = _startTime;
+        votingEndTime = _endTime;
+    }
+
     function addCandidate(string memory _name) public onlyOwner {
         candidatesCount++;
         candidates[candidatesCount] = Candidate(candidatesCount, _name, 0);
@@ -38,6 +46,8 @@ contract Voting {
     }
 
     function vote(uint256 _candidateId) public {
+        require(block.timestamp >= votingStartTime, "Voting has not started yet.");
+        require(block.timestamp <= votingEndTime, "Voting has ended.");
         require(!voters[msg.sender], "You have already voted.");
         require(_candidateId > 0 && _candidateId <= candidatesCount, "Invalid candidate ID.");
 
