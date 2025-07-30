@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Proposal } from '../hooks/useVoting';
+import { Proposal } from '../hooks/types';
 
 interface Props {
   proposals: Proposal[];
