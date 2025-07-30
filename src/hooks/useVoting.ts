@@ -13,16 +13,21 @@ export interface Proposal {
   proposer: string;
   description: string;
   voteCount: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  link: string;
 }
 
 export const useVoting = (contract: Contract | null, account: string | null) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [voteWeight, setVoteWeight] = useState<bigint>(0n);
   const [loadingVote, setLoadingVote] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [owner, setOwner] = useState<string | null>(null);
+  const [votingEndTime, setVotingEndTime] = useState<bigint>(0n);
 
   const getAllCandidates = useCallback(async () => {
     if (contract) {
@@ -57,6 +62,19 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
       }
     }
   }, [contract]);
+
+  const getVotingInfo = useCallback(async () => {
+    if (contract && account) {
+      try {
+        const weight: bigint = await contract.voteWeightOf(account);
+        setVoteWeight(weight);
+        const end: bigint = await contract.votingEndTime();
+        setVotingEndTime(end);
+      } catch (err) {
+        console.error('Error fetching voting info:', err);
+      }
+    }
+  }, [contract, account]);
 
   const getVoterStatus = useCallback(async () => {
     if (contract && account) {
@@ -115,10 +133,10 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
     }
   };
 
-  const submitProposal = async (description: string) => {
+  const submitProposal = async (description: string, start: number, end: number, link: string) => {
     if (contract) {
       try {
-        const tx = await contract.submitProposal(description);
+        const tx = await contract.submitProposal(description, start, end, link);
         await tx.wait();
         setSuccessMessage("Proposal submitted");
         getAllProposals();
@@ -149,6 +167,7 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
       getAllProposals();
       getOwner();
       getVoterStatus();
+      getVotingInfo();
 
       const onVote = (voter: string, candidateId: bigint) => {
         console.log('Voted event received!', { voter, candidateId });
@@ -182,12 +201,14 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
         contract.off('CandidateAdded', onCandidateAdded);
       };
     }
-  }, [contract, account, getAllCandidates, getAllProposals, getOwner, getVoterStatus]);
+  }, [contract, account, getAllCandidates, getAllProposals, getOwner, getVoterStatus, getVotingInfo]);
 
   return {
     candidates,
     proposals,
     owner,
+    voteWeight,
+    votingEndTime,
     hasVoted,
     loadingVote,
     vote,

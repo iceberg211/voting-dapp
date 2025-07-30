@@ -10,11 +10,24 @@ interface CandidateListProps {
   hasVoted: boolean;
   loadingVote: number | null;
   vote: (candidateId: number) => void;
+  voteWeight: bigint;
+  votingEndTime: bigint;
 }
 
-export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVoted, loadingVote, vote }) => {
+export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVoted, loadingVote, vote, voteWeight, votingEndTime }) => {
   // Sort candidates by vote count for ranking
   const sortedCandidates = [...candidates].sort((a, b) => Number(b.voteCount) - Number(a.voteCount));
+  const [remaining, setRemaining] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    const update = () => {
+      const diff = Number(votingEndTime) - Math.floor(Date.now() / 1000);
+      setRemaining(diff > 0 ? diff : 0);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [votingEndTime]);
   
   const getRankIcon = (index: number) => {
     switch (index) {
@@ -69,6 +82,10 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
         <p className="text-muted-foreground">
           Select the candidate you want to vote for. Your vote is permanent and cannot be changed.
         </p>
+        <div className="flex justify-center gap-4 mt-2">
+          <Badge variant="secondary">Your Weight: {String(voteWeight)}</Badge>
+          <Badge variant="secondary">Time Left: {remaining}s</Badge>
+        </div>
       </div>
 
       {/* Candidates Grid */}

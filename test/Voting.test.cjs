@@ -113,6 +113,12 @@ describe("Voting", function () {
         expect(allCandidates[0].name).to.equal("Candidate A");
         expect(allCandidates[1].name).to.equal("Candidate B");
     });
+
+    it("Should return correct vote weight", async function () {
+        await nft.mint(addr1.address);
+        const weight = await voting.voteWeightOf(addr1.address);
+        expect(weight).to.equal(ethers.parseEther("10") + 1n);
+    });
   });
 
   describe("Proposals", function () {
@@ -125,7 +131,10 @@ describe("Voting", function () {
     });
 
     it("Allows users to submit and vote on proposals", async function () {
-      await voting.connect(addr1).submitProposal("Proposal 1");
+      const blockNum = await ethers.provider.getBlockNumber();
+      const block = await ethers.provider.getBlock(blockNum);
+      const now = block.timestamp;
+      await voting.connect(addr1).submitProposal("Proposal 1", now, now + 3600, "");
       const proposals = await voting.getAllProposals();
       expect(proposals.length).to.equal(1);
       expect(proposals[0].description).to.equal("Proposal 1");

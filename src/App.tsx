@@ -11,6 +11,8 @@ function App() {
     candidates,
     proposals,
     owner,
+    voteWeight,
+    votingEndTime,
     hasVoted,
     loadingVote,
     vote,
@@ -39,6 +41,8 @@ function App() {
               hasVoted={hasVoted}
               loadingVote={loadingVote}
               vote={vote}
+              voteWeight={voteWeight}
+              votingEndTime={votingEndTime}
             />
             <ProposalList proposals={proposals} voteOnProposal={voteOnProposal} />
             {owner && owner.toLowerCase() === account.toLowerCase() && (

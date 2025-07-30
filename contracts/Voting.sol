@@ -18,12 +18,19 @@ contract Voting {
 
     IERC20 public voteToken;
     IERC721 public voteNFT;
+    uint256 public tokenWeight = 1;
+    uint256 public nftWeight = 1;
+    bool public votingClosed;
+    bool public resultsAnnounced;
 
     struct Proposal {
         uint256 id;
         address proposer;
         string description;
         uint256 voteCount;
+        uint256 startTime;
+        uint256 endTime;
+        string link;
     }
 
     struct Candidate {
@@ -49,6 +56,8 @@ contract Voting {
     event CandidateAdded(uint256 indexed candidateId, string name);
     event ProposalSubmitted(uint256 indexed proposalId, address indexed proposer, string description);
     event ProposalVoted(address indexed voter, uint256 indexed proposalId, uint256 weight);
+    event VotingEnded();
+    event ResultsAnnounced();
 
     constructor() {
         owner = msg.sender;
@@ -78,7 +87,16 @@ contract Voting {
         voteNFT = IERC721(_nft);
     }
 
+    function setTokenWeight(uint256 _weight) external onlyOwner {
+        tokenWeight = _weight;
+    }
+
+    function setNftWeight(uint256 _weight) external onlyOwner {
+        nftWeight = _weight;
+    }
+
     function vote(uint256 _candidateId) public {
+        require(!votingClosed, "Voting has ended.");
         require(block.timestamp >= votingStartTime, "Voting has not started yet.");
         require(block.timestamp <= votingEndTime, "Voting has ended.");
         require(!voters[msg.sender], "You have already voted.");
@@ -100,20 +118,24 @@ contract Voting {
         return allCandidates;
     }
 
-    function submitProposal(string memory _description) external {
+    function submitProposal(string memory _description, uint256 _startTime, uint256 _endTime, string memory _link) external {
+        require(_startTime <= _endTime, "Invalid proposal time range");
         proposalsCount++;
-        proposals[proposalsCount] = Proposal(proposalsCount, msg.sender, _description, 0);
+        proposals[proposalsCount] = Proposal(proposalsCount, msg.sender, _description, 0, _startTime, _endTime, _link);
         emit ProposalSubmitted(proposalsCount, msg.sender, _description);
     }
 
     function voteOnProposal(uint256 _proposalId) external {
         require(_proposalId > 0 && _proposalId <= proposalsCount, "Invalid proposal ID.");
         require(!proposalVoters[_proposalId][msg.sender], "You have already voted on this proposal.");
+        Proposal storage prop = proposals[_proposalId];
+        require(block.timestamp >= prop.startTime, "Proposal voting not started.");
+        require(block.timestamp <= prop.endTime, "Proposal voting ended.");
         uint256 weight = _voteWeight(msg.sender);
         require(weight > 0, "No voting power.");
 
         proposalVoters[_proposalId][msg.sender] = true;
-        proposals[_proposalId].voteCount += weight;
+        prop.voteCount += weight;
 
         emit ProposalVoted(msg.sender, _proposalId, weight);
     }
@@ -126,13 +148,26 @@ contract Voting {
         return allProposals;
     }
 
+    function voteWeightOf(address voter) external view returns (uint256) {
+        return _voteWeight(voter);
+    }
+
+    function endVoting() external onlyOwner {
+        require(!votingClosed, "Voting already ended.");
+        votingClosed = true;
+        votingEndTime = block.timestamp;
+        emit VotingEnded();
+    }
+
+    function announceResults() external onlyOwner {
+        require(votingClosed, "Voting not ended");
+        resultsAnnounced = true;
+        emit ResultsAnnounced();
+    }
+
     function _voteWeight(address voter) internal view returns (uint256) {
         uint256 tokenBalance = address(voteToken) != address(0) ? voteToken.balanceOf(voter) : 0;
         uint256 nftBalance = address(voteNFT) != address(0) ? voteNFT.balanceOf(voter) : 0;
-        if (tokenBalance > 0) {
-            return tokenBalance;
-        } else {
-            return nftBalance;
-        }
+        return tokenBalance * tokenWeight + nftBalance * nftWeight;
     }
 }
