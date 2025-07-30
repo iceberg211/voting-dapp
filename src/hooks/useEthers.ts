@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { ethers, BrowserProvider, Contract } from "ethers";
-import VotingArtifact from "../contracts/Voting.json";
-import contractAddress from "../contracts/contract-address.json";
+import { useState, useEffect, useCallback } from 'react';
+import { ethers, BrowserProvider, Contract } from 'ethers';
+import VotingArtifact from '../contracts/Voting.json';
+import contractAddress from '../contracts/contract-address.json';
 
 // --- Network Configuration ---
 const HARDHAT_NETWORK_ID = '1337';
@@ -20,21 +20,23 @@ export const useEthers = () => {
     setError(null);
   }, []);
 
-  const initializeDapp = useCallback(async (provider: BrowserProvider) => {
+  const createProvider = () => new ethers.BrowserProvider(window.ethereum!);
+
+  const createContract = async (prov: BrowserProvider) => {
+    const signer = await prov.getSigner();
+    return new ethers.Contract(contractAddress.Voting, VotingArtifact.abi, signer);
+  };
+
+  const initializeDapp = useCallback(async (prov: BrowserProvider) => {
     try {
       setError(null);
-      const signer = await provider.getSigner();
-      const newContract = new ethers.Contract(
-        contractAddress.Voting,
-        VotingArtifact.abi,
-        signer
-      );
-      setProvider(provider);
+      const newContract = await createContract(prov);
+      setProvider(prov);
       setContract(newContract);
-      setAccount(signer.address);
+      setAccount((await prov.getSigner()).address);
     } catch (err) {
-      console.error("Error initializing DApp:", err);
-      setError("Failed to initialize the DApp. Is the contract deployed correctly?");
+      console.error('Error initializing DApp:', err);
+      setError('Failed to initialize the DApp. Is the contract deployed correctly?');
     }
   }, []);
 
@@ -75,26 +77,23 @@ export const useEthers = () => {
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
-      return setError("MetaMask is not installed. Please install it to use this dApp.");
+      return setError('MetaMask is not installed. Please install it to use this dApp.');
     }
 
     try {
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      const network = await newProvider.getNetwork();
+      const prov = createProvider();
+      const network = await prov.getNetwork();
 
       if (network.chainId.toString() !== HARDHAT_NETWORK_ID) {
         await switchNetwork();
       }
-      
-      // Re-initialize provider after potential network switch
-      const finalProvider = new ethers.BrowserProvider(window.ethereum);
-      await finalProvider.send("eth_requestAccounts", []);
-      
-      await initializeDapp(finalProvider);
 
+      const finalProvider = createProvider();
+      await finalProvider.send('eth_requestAccounts', []);
+      await initializeDapp(finalProvider);
     } catch (err: any) {
-      console.error("Error connecting wallet:", err);
-      setError("Failed to connect wallet. User denied account access or an error occurred.");
+      console.error('Error connecting wallet:', err);
+      setError('Failed to connect wallet. User denied account access or an error occurred.');
     }
   }, [initializeDapp]);
 
