@@ -2,14 +2,21 @@ import { useEthers } from "./hooks/useEthers";
 import { useVoting } from "./hooks/useVoting";
 import { Header } from "./components/Header";
 import { CandidateList } from "./components/CandidateList";
+import { ProposalList } from "./components/ProposalList";
+import { AdminPanel } from "./components/AdminPanel";
 
 function App() {
   const { account, contract, error: ethersError, connectWallet } = useEthers();
-  const { 
-    candidates, 
-    hasVoted, 
-    loadingVote, 
-    vote, 
+  const {
+    candidates,
+    proposals,
+    owner,
+    hasVoted,
+    loadingVote,
+    vote,
+    addCandidate,
+    submitProposal,
+    voteOnProposal,
     error: votingError,
     successMessage
   } = useVoting(contract, account);
@@ -26,12 +33,18 @@ function App() {
         />
 
         {account && (
-          <CandidateList
-            candidates={candidates}
-            hasVoted={hasVoted}
-            loadingVote={loadingVote}
-            vote={vote}
-          />
+          <>
+            <CandidateList
+              candidates={candidates}
+              hasVoted={hasVoted}
+              loadingVote={loadingVote}
+              vote={vote}
+            />
+            <ProposalList proposals={proposals} voteOnProposal={voteOnProposal} />
+            {owner && owner.toLowerCase() === account.toLowerCase() && (
+              <AdminPanel addCandidate={addCandidate} submitProposal={submitProposal} />
+            )}
+          </>
         )}
       </div>
     </div>
