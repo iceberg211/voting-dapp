@@ -8,12 +8,21 @@ export interface Candidate {
   voteCount: bigint;
 }
 
+export interface Proposal {
+  id: bigint;
+  proposer: string;
+  description: string;
+  voteCount: bigint;
+}
+
 export const useVoting = (contract: Contract | null, account: string | null) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [loadingVote, setLoadingVote] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [owner, setOwner] = useState<string | null>(null);
 
   const getAllCandidates = useCallback(async () => {
     if (contract) {
@@ -23,6 +32,28 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
       } catch (err) {
         console.error("Error fetching candidates:", err);
         setError("Failed to fetch candidates. Is the contract on the right network?");
+      }
+    }
+  }, [contract]);
+
+  const getAllProposals = useCallback(async () => {
+    if (contract) {
+      try {
+        const allProposals = await contract.getAllProposals();
+        setProposals(allProposals);
+      } catch (err) {
+        console.error("Error fetching proposals:", err);
+      }
+    }
+  }, [contract]);
+
+  const getOwner = useCallback(async () => {
+    if (contract) {
+      try {
+        const ownerAddress = await contract.owner();
+        setOwner(ownerAddress);
+      } catch (err) {
+        console.error("Error fetching owner:", err);
       }
     }
   }, [contract]);
@@ -70,9 +101,53 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
     }
   };
 
+  const addCandidate = async (name: string) => {
+    if (contract) {
+      try {
+        const tx = await contract.addCandidate(name);
+        await tx.wait();
+        setSuccessMessage("Candidate added");
+        getAllCandidates();
+      } catch (err: any) {
+        console.error("Error adding candidate:", err);
+        setError(err.message || "Failed to add candidate");
+      }
+    }
+  };
+
+  const submitProposal = async (description: string) => {
+    if (contract) {
+      try {
+        const tx = await contract.submitProposal(description);
+        await tx.wait();
+        setSuccessMessage("Proposal submitted");
+        getAllProposals();
+      } catch (err: any) {
+        console.error("Error submitting proposal:", err);
+        setError(err.message || "Failed to submit proposal");
+      }
+    }
+  };
+
+  const voteOnProposal = async (proposalId: number) => {
+    if (contract) {
+      try {
+        const tx = await contract.voteOnProposal(proposalId);
+        await tx.wait();
+        setSuccessMessage("Voted on proposal");
+        getAllProposals();
+      } catch (err: any) {
+        console.error("Error voting on proposal:", err);
+        setError(err.message || "Failed to vote on proposal");
+      }
+    }
+  };
+
   useEffect(() => {
     if (contract && account) {
       getAllCandidates();
+      getAllProposals();
+      getOwner();
       getVoterStatus();
 
       const onVote = (voter: string, candidateId: bigint) => {
@@ -92,12 +167,35 @@ export const useVoting = (contract: Contract | null, account: string | null) => 
       };
 
       contract.on('Voted', onVote);
+      const onProposalVote = (_voter: string, proposalId: bigint) => {
+        setProposals(prev => prev.map(p => p.id === proposalId ? { ...p, voteCount: p.voteCount + 1n } : p));
+      };
+      const onCandidateAdded = (id: bigint, name: string) => {
+        setCandidates(prev => [...prev, { id, name, voteCount: 0n }]);
+      };
+      contract.on('ProposalVoted', onProposalVote);
+      contract.on('CandidateAdded', onCandidateAdded);
 
       return () => {
         contract.off('Voted', onVote);
+        contract.off('ProposalVoted', onProposalVote);
+        contract.off('CandidateAdded', onCandidateAdded);
       };
     }
-  }, [contract, account, getAllCandidates, getVoterStatus]);
+  }, [contract, account, getAllCandidates, getAllProposals, getOwner, getVoterStatus]);
 
-  return { candidates, hasVoted, loadingVote, vote, error, successMessage, setError };
+  return {
+    candidates,
+    proposals,
+    owner,
+    hasVoted,
+    loadingVote,
+    vote,
+    addCandidate,
+    submitProposal,
+    voteOnProposal,
+    error,
+    successMessage,
+    setError
+  };
 };

@@ -112,14 +112,14 @@ export const useEthers = () => {
     };
 
     if (window.ethereum) {
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-      window.ethereum.on("chainChanged", handleChainChanged);
+      (window.ethereum as any).on("accountsChanged", handleAccountsChanged);
+      (window.ethereum as any).on("chainChanged", handleChainChanged);
     }
 
     return () => {
       if (window.ethereum) {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-        window.ethereum.removeListener("chainChanged", handleChainChanged);
+        (window.ethereum as any).removeListener("accountsChanged", handleAccountsChanged);
+        (window.ethereum as any).removeListener("chainChanged", handleChainChanged);
       }
     };
   }, [connectWallet, resetState]);
