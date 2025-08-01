@@ -8,6 +8,7 @@ export const useProposals = (
   setSuccess?: (msg: string | null) => void
 ) => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [proposalHistory, setProposalHistory] = useState<Array<{ voter: string; proposalId: bigint; weight: bigint; blockNumber: bigint }>>([]);
 
   const getAllProposals = useCallback(async () => {
     if (!contract) return;
@@ -22,7 +23,9 @@ export const useProposals = (
   const submitProposal = async (description: string, start: number, end: number, link: string) => {
     if (!contract) return;
     try {
-      const tx = await contract.submitProposal(description, start, end, link);
+      const gas = await contract.estimateGas.submitProposal(description, start, end, link);
+      console.log('Estimated gas for submitProposal:', gas.toString());
+      const tx = await contract.submitProposal(description, start, end, link, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Proposal submitted');
       getAllProposals();
@@ -35,7 +38,9 @@ export const useProposals = (
   const voteOnProposal = async (proposalId: number) => {
     if (!contract) return;
     try {
-      const tx = await contract.voteOnProposal(proposalId);
+      const gas = await contract.estimateGas.voteOnProposal(proposalId);
+      console.log('Estimated gas for voteOnProposal:', gas.toString());
+      const tx = await contract.voteOnProposal(proposalId, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Voted on proposal');
       getAllProposals();
@@ -45,9 +50,27 @@ export const useProposals = (
     }
   };
 
+  const fetchProposalHistory = useCallback(async () => {
+    if (!contract) return;
+    try {
+      const events = await contract.queryFilter(contract.filters.ProposalVoted());
+      setProposalHistory(
+        events.map(e => ({
+          voter: e.args?.voter as string,
+          proposalId: e.args?.proposalId as bigint,
+          weight: e.args?.weight as bigint,
+          blockNumber: BigInt(e.blockNumber ?? 0),
+        }))
+      );
+    } catch (err) {
+      console.error('Error fetching proposal history:', err);
+    }
+  }, [contract]);
+
   useEffect(() => {
     if (!contract) return;
     getAllProposals();
+    fetchProposalHistory();
     const onProposalVote = (_voter: string, proposalId: bigint) => {
       setProposals(prev =>
         prev.map(p => (p.id === proposalId ? { ...p, voteCount: p.voteCount + 1n } : p))
@@ -59,5 +82,5 @@ export const useProposals = (
     };
   }, [contract, getAllProposals]);
 
-  return { proposals, submitProposal, voteOnProposal };
+  return { proposals, submitProposal, voteOnProposal, proposalHistory };
 };

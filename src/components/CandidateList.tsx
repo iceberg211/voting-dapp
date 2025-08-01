@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEther } from 'ethers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +84,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
           Select the candidate you want to vote for. Your vote is permanent and cannot be changed.
         </p>
         <div className="flex justify-center gap-4 mt-2">
-          <Badge variant="secondary">Your Weight: {String(voteWeight)}</Badge>
+          <Badge variant="secondary">Your Weight: {formatEther(voteWeight)}</Badge>
           <Badge variant="secondary">Time Left: {remaining}s</Badge>
         </div>
       </div>
@@ -92,7 +93,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedCandidates.map((candidate, index) => {
           const candidateId = Number(candidate.id);
-          const voteCount = Number(candidate.voteCount);
+          const voteCount = parseFloat(formatEther(candidate.voteCount));
           const isLoading = loadingVote === candidateId;
           
           return (
@@ -130,8 +131,8 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Vote Share</span>
                       <span>
-                        {candidates.reduce((total, c) => total + Number(c.voteCount), 0) > 0
-                          ? Math.round((voteCount / candidates.reduce((total, c) => total + Number(c.voteCount), 0)) * 100)
+                        {candidates.reduce((total, c) => total + parseFloat(formatEther(c.voteCount)), 0) > 0
+                          ? Math.round((voteCount / candidates.reduce((total, c) => total + parseFloat(formatEther(c.voteCount)), 0)) * 100)
                           : 0}%
                       </span>
                     </div>
@@ -139,8 +140,8 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
                       <div 
                         className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                         style={{
-                          width: candidates.reduce((total, c) => total + Number(c.voteCount), 0) > 0
-                            ? `${(voteCount / candidates.reduce((total, c) => total + Number(c.voteCount), 0)) * 100}%`
+                          width: candidates.reduce((total, c) => total + parseFloat(formatEther(c.voteCount)), 0) > 0
+                            ? `${(voteCount / candidates.reduce((total, c) => total + parseFloat(formatEther(c.voteCount)), 0)) * 100}%`
                             : '0%'
                         }}
                       />
@@ -190,7 +191,7 @@ export const CandidateList: React.FC<CandidateListProps> = ({ candidates, hasVot
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="space-y-1">
               <p className="text-2xl font-bold text-blue-600">
-                {candidates.reduce((total, candidate) => total + Number(candidate.voteCount), 0)}
+                {candidates.reduce((total, candidate) => total + parseFloat(formatEther(candidate.voteCount)), 0)}
               </p>
               <p className="text-sm text-muted-foreground">Total Votes</p>
             </div>

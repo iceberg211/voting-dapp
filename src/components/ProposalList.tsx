@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEther } from 'ethers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Proposal } from '../hooks/types';
@@ -33,7 +34,7 @@ export const ProposalList: React.FC<Props> = ({ proposals, voteOnProposal }) => 
               </a>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Votes: {String(p.voteCount)}</span>
+              <span className="text-sm text-muted-foreground">Votes: {formatEther(p.voteCount)}</span>
               <Button onClick={() => voteOnProposal(Number(p.id))}>Vote</Button>
             </div>
           </CardContent>

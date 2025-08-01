@@ -1,17 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ethers, BrowserProvider, Contract } from 'ethers';
+import { ethers, BrowserProvider, JsonRpcProvider, Contract, Wallet, Signer } from 'ethers';
 import VotingArtifact from '../contracts/Voting.json';
 import contractAddress from '../contracts/contract-address.json';
 
 // --- Network Configuration ---
-const HARDHAT_NETWORK_ID = '1337';
-const HARDHAT_NETWORK_HEX_ID = '0x539'; // Hex for 1337
+const NETWORKS = {
+  hardhat: {
+    chainId: 1337,
+    hexId: '0x539',
+    name: 'Hardhat Localhost',
+    rpcUrl: 'http://127.0.0.1:8545',
+  },
+  sepolia: {
+    chainId: 11155111,
+    hexId: '0xaa36a7',
+    name: 'Sepolia',
+    rpcUrl: '',
+  },
+  goerli: {
+    chainId: 5,
+    hexId: '0x5',
+    name: 'Goerli',
+    rpcUrl: '',
+  },
+} as const;
 
 export const useEthers = () => {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [network, setNetwork] = useState<keyof typeof NETWORKS>('hardhat');
 
   const resetState = useCallback(() => {
     setProvider(null);
@@ -22,29 +41,32 @@ export const useEthers = () => {
 
   const createProvider = () => new ethers.BrowserProvider(window.ethereum!);
 
-  const createContract = async (prov: BrowserProvider) => {
-    const signer = await prov.getSigner();
+  const createRpcProvider = (url: string) => new JsonRpcProvider(url);
+
+  const createContract = async (signer: ethers.Signer) => {
     return new ethers.Contract(contractAddress.Voting, VotingArtifact.abi, signer);
   };
 
-  const initializeDapp = useCallback(async (prov: BrowserProvider) => {
+  const initializeDapp = useCallback(async (signer: Signer, prov?: BrowserProvider | JsonRpcProvider) => {
     try {
       setError(null);
-      const newContract = await createContract(prov);
-      setProvider(prov);
+      if (prov) {
+        setProvider(prov instanceof BrowserProvider ? prov : null);
+      }
+      const newContract = await createContract(signer);
       setContract(newContract);
-      setAccount((await prov.getSigner()).address);
+      setAccount(await signer.getAddress());
     } catch (err) {
       console.error('Error initializing DApp:', err);
       setError('Failed to initialize the DApp. Is the contract deployed correctly?');
     }
   }, []);
 
-  const switchNetwork = async () => {
+  const switchNetwork = async (target: keyof typeof NETWORKS) => {
     try {
       await window.ethereum?.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: HARDHAT_NETWORK_HEX_ID }],
+        params: [{ chainId: NETWORKS[target].hexId }],
       });
     } catch (switchError: any) {
       if (switchError.code === 4902) {
@@ -53,9 +75,9 @@ export const useEthers = () => {
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: HARDHAT_NETWORK_HEX_ID,
-                chainName: 'Hardhat Localhost',
-                rpcUrls: ['http://127.0.0.1:8545'],
+                chainId: NETWORKS[target].hexId,
+                chainName: NETWORKS[target].name,
+                rpcUrls: [NETWORKS[target].rpcUrl || ''],
                 nativeCurrency: {
                   name: 'Ethereum',
                   symbol: 'ETH',
@@ -66,11 +88,11 @@ export const useEthers = () => {
           });
         } catch (addError) {
           console.error("Failed to add network", addError);
-          throw new Error("Failed to add the Hardhat network to MetaMask.");
+          throw new Error("Failed to add the network to your wallet.");
         }
       } else {
         console.error("Failed to switch network", switchError);
-        throw new Error("Failed to switch to the Hardhat network. Please do it manually in MetaMask.");
+        throw new Error("Failed to switch network. Please do it manually in your wallet.");
       }
     }
   };
@@ -83,14 +105,14 @@ export const useEthers = () => {
     try {
       const prov = createProvider();
       const network = await prov.getNetwork();
-
-      if (network.chainId.toString() !== HARDHAT_NETWORK_ID) {
-        await switchNetwork();
+      if (network.chainId !== NETWORKS[network].chainId) {
+        await switchNetwork(network);
       }
 
       const finalProvider = createProvider();
       await finalProvider.send('eth_requestAccounts', []);
-      await initializeDapp(finalProvider);
+      const signer = await finalProvider.getSigner();
+      await initializeDapp(signer, finalProvider);
     } catch (err: any) {
       console.error('Error connecting wallet:', err);
       setError('Failed to connect wallet. User denied account access or an error occurred.');
@@ -123,5 +145,16 @@ export const useEthers = () => {
     };
   }, [connectWallet, resetState]);
 
-  return { provider, contract, account, error, connectWallet, setError };
+  const connectWithPrivateKey = useCallback(async (rpcUrl: string, pk: string) => {
+    try {
+      const rpcProvider = createRpcProvider(rpcUrl);
+      const wallet = new Wallet(pk, rpcProvider);
+      await initializeDapp(wallet, rpcProvider);
+    } catch (err: any) {
+      console.error('Error connecting with private key:', err);
+      setError('Failed to connect with private key');
+    }
+  }, [initializeDapp]);
+
+  return { provider, contract, account, error, network, setNetwork, connectWallet, connectWithPrivateKey, setError };
 };
