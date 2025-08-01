@@ -10,10 +10,12 @@ interface HeaderProps {
   hasVoted: boolean;
   error: string | null;
   successMessage: string | null;
+  network: string;
+  setNetwork: (n: string) => void;
   connectWallet: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, successMessage, connectWallet }) => {
+export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, successMessage, network, setNetwork, connectWallet }) => {
   return (
     <header className="space-y-6 mb-8">
       {/* Title Section */}
@@ -43,6 +45,19 @@ export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, succes
           <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
         </Alert>
       )}
+
+      {/* Network Select */}
+      <div className="flex justify-center">
+        <select
+          value={network}
+          onChange={(e) => setNetwork(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="hardhat">Hardhat</option>
+          <option value="sepolia">Sepolia</option>
+          <option value="goerli">Goerli</option>
+        </select>
+      </div>
 
       {/* Wallet Connection */}
       <Card className="max-w-2xl mx-auto">

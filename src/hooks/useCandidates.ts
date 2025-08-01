@@ -11,6 +11,7 @@ export const useCandidates = (
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [loadingVote, setLoadingVote] = useState<number | null>(null);
+  const [voteHistory, setVoteHistory] = useState<Array<{ voter: string; candidateId: bigint; weight: bigint; blockNumber: bigint }>>([]);
 
   const getAllCandidates = useCallback(async () => {
     if (!contract) return;
@@ -39,7 +40,9 @@ export const useCandidates = (
       setLoadingVote(candidateId);
       setError && setError(null);
       setSuccess && setSuccess(null);
-      const tx = await contract.vote(candidateId);
+      const gas = await contract.estimateGas.vote(candidateId);
+      console.log('Estimated gas for vote:', gas.toString());
+      const tx = await contract.vote(candidateId, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Vote successful!');
     } catch (err: any) {
@@ -61,7 +64,9 @@ export const useCandidates = (
   const addCandidate = async (name: string) => {
     if (!contract) return;
     try {
-      const tx = await contract.addCandidate(name);
+      const gas = await contract.estimateGas.addCandidate(name);
+      console.log('Estimated gas for addCandidate:', gas.toString());
+      const tx = await contract.addCandidate(name, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Candidate added');
       getAllCandidates();
@@ -71,10 +76,28 @@ export const useCandidates = (
     }
   };
 
+  const fetchVoteHistory = useCallback(async () => {
+    if (!contract) return;
+    try {
+      const events = await contract.queryFilter(contract.filters.Voted());
+      setVoteHistory(
+        events.map(e => ({
+          voter: e.args?.voter as string,
+          candidateId: e.args?.candidateId as bigint,
+          weight: e.args?.weight as bigint,
+          blockNumber: BigInt(e.blockNumber ?? 0),
+        }))
+      );
+    } catch (err) {
+      console.error('Error fetching vote history:', err);
+    }
+  }, [contract]);
+
   useEffect(() => {
     if (!contract || !account) return;
     getAllCandidates();
     getVoterStatus();
+    fetchVoteHistory();
 
     const onVote = (voter: string, candidateId: bigint) => {
       setCandidates(prev =>
@@ -97,5 +120,5 @@ export const useCandidates = (
     };
   }, [contract, account, getAllCandidates, getVoterStatus]);
 
-  return { candidates, hasVoted, loadingVote, vote, addCandidate };
+  return { candidates, hasVoted, loadingVote, vote, addCandidate, voteHistory };
 };
