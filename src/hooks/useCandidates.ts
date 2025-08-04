@@ -40,9 +40,9 @@ export const useCandidates = (
       setLoadingVote(candidateId);
       setError && setError(null);
       setSuccess && setSuccess(null);
-      const gas = await contract.estimateGas.vote(candidateId);
+      const gas = await (contract.estimateGas as any).vote(candidateId);
       console.log('Estimated gas for vote:', gas.toString());
-      const tx = await contract.vote(candidateId, { gasLimit: gas });
+      const tx = await (contract as any).vote(candidateId, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Vote successful!');
     } catch (err: any) {
@@ -64,9 +64,9 @@ export const useCandidates = (
   const addCandidate = async (name: string) => {
     if (!contract) return;
     try {
-      const gas = await contract.estimateGas.addCandidate(name);
+      const gas = await (contract.estimateGas as any).addCandidate(name);
       console.log('Estimated gas for addCandidate:', gas.toString());
-      const tx = await contract.addCandidate(name, { gasLimit: gas });
+      const tx = await (contract as any).addCandidate(name, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Candidate added');
       getAllCandidates();
@@ -79,9 +79,9 @@ export const useCandidates = (
   const fetchVoteHistory = useCallback(async () => {
     if (!contract) return;
     try {
-      const events = await contract.queryFilter(contract.filters.Voted());
+      const events = (await contract.queryFilter(contract.filters.Voted())) as any[];
       setVoteHistory(
-        events.map(e => ({
+        events.map((e: any) => ({
           voter: e.args?.voter as string,
           candidateId: e.args?.candidateId as bigint,
           weight: e.args?.weight as bigint,
