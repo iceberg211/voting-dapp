@@ -11,11 +11,24 @@ interface HeaderProps {
   error: string | null;
   successMessage: string | null;
   network: string;
-  setNetwork: (n: string) => void;
+  setNetwork: React.Dispatch<React.SetStateAction<'hardhat' | 'sepolia' | 'goerli'>>;
   connectWallet: () => void;
+  connectWithPrivateKey: (rpcUrl: string, pk: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, successMessage, network, setNetwork, connectWallet }) => {
+export const Header: React.FC<HeaderProps> = ({
+  account,
+  hasVoted,
+  error,
+  successMessage,
+  network,
+  setNetwork,
+  connectWallet,
+  connectWithPrivateKey,
+}) => {
+  const [rpcUrl, setRpcUrl] = React.useState('');
+  const [privateKey, setPrivateKey] = React.useState('');
+
   return (
     <header className="space-y-6 mb-8">
       {/* Title Section */}
@@ -50,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, succes
       <div className="flex justify-center">
         <select
           value={network}
-          onChange={(e) => setNetwork(e.target.value)}
+          onChange={(e) => setNetwork(e.target.value as any)}
           className="border rounded px-2 py-1 text-sm"
         >
           <option value="hardhat">Hardhat</option>
@@ -75,6 +88,32 @@ export const Header: React.FC<HeaderProps> = ({ account, hasVoted, error, succes
                 <Wallet className="h-4 w-4" />
                 Connect Wallet
               </Button>
+
+              {import.meta.env.DEV && (
+                <div className="space-y-2 pt-4 text-left">
+                  <input
+                    type="text"
+                    value={rpcUrl}
+                    onChange={(e) => setRpcUrl(e.target.value)}
+                    placeholder="RPC URL"
+                    className="w-full border rounded px-3 py-1 text-sm"
+                  />
+                  <input
+                    type="password"
+                    value={privateKey}
+                    onChange={(e) => setPrivateKey(e.target.value)}
+                    placeholder="Private Key"
+                    className="w-full border rounded px-3 py-1 text-sm"
+                  />
+                  <Button
+                    onClick={() => connectWithPrivateKey(rpcUrl, privateKey)}
+                    variant="secondary"
+                    className="w-full mt-2"
+                  >
+                    Use Private Key
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
