@@ -23,9 +23,9 @@ export const useProposals = (
   const submitProposal = async (description: string, start: number, end: number, link: string) => {
     if (!contract) return;
     try {
-      const gas = await contract.estimateGas.submitProposal(description, start, end, link);
+      const gas = await (contract.estimateGas as any).submitProposal(description, start, end, link);
       console.log('Estimated gas for submitProposal:', gas.toString());
-      const tx = await contract.submitProposal(description, start, end, link, { gasLimit: gas });
+      const tx = await (contract as any).submitProposal(description, start, end, link, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Proposal submitted');
       getAllProposals();
@@ -38,9 +38,9 @@ export const useProposals = (
   const voteOnProposal = async (proposalId: number) => {
     if (!contract) return;
     try {
-      const gas = await contract.estimateGas.voteOnProposal(proposalId);
+      const gas = await (contract.estimateGas as any).voteOnProposal(proposalId);
       console.log('Estimated gas for voteOnProposal:', gas.toString());
-      const tx = await contract.voteOnProposal(proposalId, { gasLimit: gas });
+      const tx = await (contract as any).voteOnProposal(proposalId, { gasLimit: gas });
       await tx.wait();
       setSuccess && setSuccess('Voted on proposal');
       getAllProposals();
@@ -53,9 +53,9 @@ export const useProposals = (
   const fetchProposalHistory = useCallback(async () => {
     if (!contract) return;
     try {
-      const events = await contract.queryFilter(contract.filters.ProposalVoted());
+      const events = (await contract.queryFilter(contract.filters.ProposalVoted())) as any[];
       setProposalHistory(
-        events.map(e => ({
+        events.map((e: any) => ({
           voter: e.args?.voter as string,
           proposalId: e.args?.proposalId as bigint,
           weight: e.args?.weight as bigint,

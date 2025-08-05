@@ -4,12 +4,15 @@ import { Header } from "./components/Header";
 import { CandidateList } from "./components/CandidateList";
 import { ProposalList } from "./components/ProposalList";
 import { AdminPanel } from "./components/AdminPanel";
+import { HistoryPanel } from "./components/HistoryPanel";
 
 function App() {
-  const { account, contract, error: ethersError, network, setNetwork, connectWallet } = useEthers();
+  const { account, contract, error: ethersError, network, setNetwork, connectWallet, connectWithPrivateKey } = useEthers();
   const {
     candidates,
     proposals,
+    voteHistory,
+    proposalHistory,
     owner,
     voteWeight,
     votingEndTime,
@@ -34,6 +37,7 @@ function App() {
           network={network}
           setNetwork={setNetwork}
           connectWallet={connectWallet}
+          connectWithPrivateKey={connectWithPrivateKey}
         />
 
         {account && (
@@ -47,6 +51,7 @@ function App() {
               votingEndTime={votingEndTime}
             />
             <ProposalList proposals={proposals} voteOnProposal={voteOnProposal} />
+            <HistoryPanel voteHistory={voteHistory} proposalHistory={proposalHistory} />
             {owner && owner.toLowerCase() === account.toLowerCase() && (
               <AdminPanel addCandidate={addCandidate} submitProposal={submitProposal} />
             )}

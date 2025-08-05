@@ -104,8 +104,8 @@ export const useEthers = () => {
 
     try {
       const prov = createProvider();
-      const network = await prov.getNetwork();
-      if (network.chainId !== NETWORKS[network].chainId) {
+      const currentNetwork = await prov.getNetwork();
+      if (currentNetwork.chainId !== BigInt(NETWORKS[network].chainId)) {
         await switchNetwork(network);
       }
 
